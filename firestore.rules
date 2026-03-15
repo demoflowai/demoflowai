@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isLeadOwner(leadData) {
+      return isAuthenticated() && request.auth.uid == leadData.ownerUid;
+    }
+
+    // Domain Validators
+    function isValidLead(data) {
+      return data.companyName is string && data.companyName.size() > 0 &&
+             data.website is string && data.website.size() > 0 &&
+             data.email is string && data.email.size() > 0 &&
+             data.status in ['new', 'demo_sent', 'demo_viewed', 'paid', 'installed'] &&
+             data.ownerUid is string;
+    }
+
+    match /leads/{leadId} {
+      // Allow reading if you are the owner OR if it's a public demo view (demo_sent status)
+      allow read: if isLeadOwner(resource.data) || (resource.data.status == 'demo_sent' || resource.data.status == 'demo_viewed');
+      
+      allow create: if isAuthenticated() && isValidLead(request.resource.data) && request.resource.data.ownerUid == request.auth.uid;
+      
+      allow update: if isAuthenticated() && isLeadOwner(resource.data) && isValidLead(request.resource.data) && request.resource.data.ownerUid == resource.data.ownerUid;
+      
+      // Special case: allow updating status to 'demo_viewed' without auth if the status is currently 'demo_sent'
+      // This allows tracking when a prospect clicks the link
+      allow update: if !isAuthenticated() && 
+                    resource.data.status == 'demo_sent' && 
+                    request.resource.data.status == 'demo_viewed' &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lastUpdated', 'statusHistory']);
+    }
+  }
+}
