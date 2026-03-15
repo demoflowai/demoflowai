@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "A business lead identified for chatbot services",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "website": { "type": "string" },
+        "email": { "type": "string" },
+        "sector": { "type": "string" },
+        "description": { "type": "string" },
+        "reasoning": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": ["new", "demo_sent", "demo_viewed", "paid", "installed"] 
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "demoUrl": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "statusHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "required": ["companyName", "website", "email", "status", "ownerUid"]
+    }
+  },
+  "firestore": {
+    "leads": {
+      "schema": "Lead",
+      "description": "Collection of business leads and their funnel status"
+    }
+  }
+}
